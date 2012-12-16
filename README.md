@@ -1,4 +1,4 @@
-AttributesViewer
+Mathematica Symbol Information Palette
 ================
 
-Creates a palette for displaying Attributes and Options of Mathematica functions
+Creates a palette for displaying Usage, Options, Attributes and more.
