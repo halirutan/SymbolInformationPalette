@@ -1,3 +1,29 @@
+(* :Title: Package SymbolInformationPalette *)
+
+(* :Context: SymbolInformationPalette` *)
+
+(* :Author: halirutan *)
+
+(* :Summary: 
+    This package provides a palette to show usages, options and attributes of symbols.
+*)
+
+(* :Package Version: 1.0 *)
+
+(* :Mathematica Version: 9.0 *)
+
+(* :Copyright: Copyright 2012, halirutan  *)
+
+(* :History:
+*)
+
+(* :Keywords:
+    palette, options, attributes, usage
+*)
+
+(* :Limitations:  *)
+
+(* :Discussion:  *)
 
 BeginPackage["SymbolInformationPalette`"]
 
@@ -5,7 +31,6 @@ InstallSymbolInformationPalette::usage = "InstallAttributesViewer[path] installs
 If the path is omitted then the palette is installed into an appropriate directory inside the $UserBaseDirectory.";
 
 SymbolInformationPalette::usage = "AttributesViewerPalette[] displays the Attributes Viewer palette.";
-
 
 Begin["`Private`"]
 
@@ -166,12 +191,7 @@ usageButton[{symbol_Symbol, defaultValue_}] :=
          Dynamic@Deploy[EventHandler[label[state], {"MouseUp" :> (state = Not[state])}]]
 ]
 
-(*
-displayOptionUsage[{symbol_String, defaultValue_}] := CreateDialog[{
-    Cell[BoxData[StyleBox[RowBox[{symbol,": is a string-option and has no usage message."}],"MSG"]], "PrintUsage", CellMargins -> 0],
-    Cell[StyleBox[ToString[defaultValue,InputForm], "Item"], CellMargins -> 0]}, 
-    WindowFrame -> "Frameless", Background -> $bright2, WindowFloating->True];
-*)
+
 optionsDialog[symbol_Symbol] := Module[{opts = Options[symbol]},
     Switch[opts,
         {},
@@ -184,5 +204,19 @@ optionsDialog[symbol_Symbol] := Module[{opts = Options[symbol]},
     ]
 ];
 
-End[]
-EndPackage[]
+(* Create buttons to show/install the palette when loading the package *)
+With[{imgsz = ImageSize -> {100,30}},
+    Print[Panel[
+        Column[{
+            Button[Style["Show Palette",buttonlabelstyle], SymbolInformationPalette[],Method->"Queued", imgsz, buttonstyle], 
+            Button[Style["Install Palette",buttonlabelstyle], InstallSymbolInformationPalette[], Method->"Queued", imgsz, buttonstyle],
+            PasteButton[Style["Install to path",buttonlabelstyle], 
+                Defer[InstallSymbolInformationPalette["/your/path/PaletteName.nb"]],imgsz, buttonstyle]            
+            }],style["Please choose:",$orange],Background->$bright1]
+    ];
+];
+
+End[];
+EndPackage[];
+
+
