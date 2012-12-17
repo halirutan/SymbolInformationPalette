@@ -36,7 +36,7 @@ palette[] := PaletteNotebook[
                 button["Options", showOptions[]],
                 button["Attributes", showAttributes[]]
             }],
-        style["Properties", $orange],
+        style["Information", $orange],
         Appearance -> "Frameless", ImageMargins -> 5
         ], SaveDefinitions -> True
     ]
@@ -63,6 +63,10 @@ buttonstyle = Sequence[ImageMargins -> 0, Appearance -> "Frameless",
 
 style[str_String, more___] := Style[str, 12, FontFamily -> "Helvetica", $dark1, more];
 
+SetAttributes[button, {HoldRest}];
+button[lbl_String, cmd_] := Button[Style[lbl, buttonlabelstyle], cmd, buttonstyle];
+
+errorDialog[msg_String] := MessageDialog[style[msg, $orange], WindowTitle -> "Error"];
 
 (* Extracting an expression from the current cursor-position in the current notebook
    If no Symbol was selected, we try to expand the selection and select the surrounding expression.
@@ -72,7 +76,7 @@ getSymbol[nb_] := Block[{sel, heldSymbol},
     sel = NotebookRead[nb];
     ];
     heldSymbol = MakeExpression[sel, StandardForm];
-    If[ sel =!= {} && Head[First[heldSymbol]] === Symbol,
+    If[ sel =!= {} && heldSymbol[[1,0]] === Symbol,
         heldSymbol,
         $Failed]
     ];
@@ -84,28 +88,14 @@ getSymbol[nb_] := Block[{sel, heldSymbol},
 showUsageDialog[] := Module[{nb = SelectedNotebook[], usg, symbol},
     symbol = getSymbol[nb];
     If[symbol === $Failed,
-    errorDialog["No Symbol was selected."],
-    usg = MessageName[#, "usage"] & @@ symbol;
-    usg = If[Head[usg] === MessageName, "No usage message available.", usg]];
-    CreateDialog[DisplayForm[Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0, CellSize -> {300, Automatic}]], 
-        WindowTitle -> ToString @@ symbol, Background->$bright1, WindowFrame->"Palette"]
+        errorDialog["No Symbol was selected."],
+        usg = MessageName[#, "usage"] & @@ symbol;
+        usg = If[Head[usg] === MessageName, "No usage message available.", usg];
+        CreateDialog[DisplayForm[Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0, CellSize -> {300, Automatic}]], 
+            WindowTitle -> ToString @@ symbol, Background->$bright1, WindowFrame->"Palette"]
+    ]
 ]
 
-(*
-SetAttributes[usage, {HoldAll}];
-displayOptionUsage[{symbol_Symbol, defaultValue_}]:= With[{
-    dval = ToString[defaultValue,InputForm],
-    usg = If[Unevaluated[symbol::usage]===symbol::usage, "No usage message available.", symbol::usage]},
-    CreateDialog[{
-    Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0],
-    Cell[StyleBox[dval, "Item"], CellMargins -> 0, FontFamily->"Courier New", FontSize->12]}, 
-    WindowFrame -> "Frameless", Background -> $bright2, WindowSize -> {300,All}];
-];
-*)
-SetAttributes[button, {HoldRest}];
-button[lbl_String, cmd_] := Button[Style[lbl, buttonlabelstyle], cmd, buttonstyle];
-
-errorDialog[msg_String] := MessageDialog[style[msg, $orange], WindowTitle -> "Error"];
 
 showAttributes[] := Module[{nb = SelectedNotebook[], symbol},
     symbol = getSymbol[nb];
@@ -126,8 +116,6 @@ showOptions[] := Module[{nb = SelectedNotebook[], symbol},
     optionsDialog @@ symbol
     ]
 ];
-
-
 
 $holdAttributes = {HoldFirst, HoldRest, HoldAll, HoldAllComplete, SequenceHold, NHoldFirst, NHoldRest, NHoldAll};
 $protectAttributes = {Protected, ReadProtected, Locked};
@@ -154,17 +142,8 @@ attributePanel[in_] := Panel[
         }, Alignment -> {Left, Top}]
 ]
 
-
-
 (* ::Section:: *)
 (* Get Options from a symbol *)
-
-(*optionButton[{symbol_, defaultValue_}, col_, textcol_] := Button[
-    style[ToString[symbol], textcol],
-    displayOptionUsage[{symbol, defaultValue}],
-    Appearance -> "Frameless", Alignment -> Left, ImageSize -> {300, 22}, Background -> col, ImageMargins -> 0
-]
-*)
 
 (*
 This represents a button which shows an option name and changes its color hover.
