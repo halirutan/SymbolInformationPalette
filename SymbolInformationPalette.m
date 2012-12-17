@@ -1,11 +1,10 @@
-(* Mathematica Package *)
 
-BeginPackage["AttributesViewer`"]
+BeginPackage["SymbolInformationPalette`"]
 
-InstallAttributesViewer::usage = "InstallAttributesViewer[path] installs the palette into the specified path. \
+InstallSymbolInformationPalette::usage = "InstallAttributesViewer[path] installs the palette into the specified path. \
 If the path is omitted then the palette is installed into an appropriate directory inside the $UserBaseDirectory.";
 
-AttributesViewerPalette::usage = "AttributesViewerPalette[] displays the Attributes Viewer palette.";
+SymbolInformationPalette::usage = "AttributesViewerPalette[] displays the Attributes Viewer palette.";
 
 
 Begin["`Private`"]
@@ -27,10 +26,10 @@ buttonstyle = Sequence[ImageMargins -> 0, Appearance -> "Frameless",
 
 style[str_String, more___] := Style[str, 12, FontFamily -> "Helvetica", $dark1, more];
 
-InstallAttributesViewer[path_String /; DirectoryQ[path]] := InstallAttributesViewer[FileNameJoin[path, $paletteName]];
-InstallAttributesViewer[] := InstallAttributesViewer[
+InstallSymbolInformationPalette[path_String /; DirectoryQ[path]] := InstallSymbolInformationPalette[FileNameJoin[path, $paletteName]];
+InstallSymbolInformationPalette[] := InstallSymbolInformationPalette[
     FileNameJoin[{$UserBaseDirectory, "SystemFiles", "FrontEnd", "Palettes", $paletteName}]];
-InstallAttributesViewer[file_String] := 
+InstallSymbolInformationPalette[file_String] := 
     If[Not[FileExistsQ[file]] || 
         ChoiceDialog[
             Row[{
@@ -44,7 +43,7 @@ InstallAttributesViewer[file_String] :=
         Export[file, CreatePalette[palette[]]]
     ];
 
-AttributesViewerPalette[] := CreatePalette[palette[]];
+SymbolInformationPalette[] := CreatePalette[palette[]];
 
 palette[] := PaletteNotebook[
     DynamicModule[{},
@@ -53,7 +52,7 @@ palette[] := PaletteNotebook[
                 button["Attributes", showAttributes[]],
                 button["Options", showOptions[]]
             }],
-        style["Properties", $orange, Bold],
+        style["Properties", $orange],
         Appearance -> "Frameless", ImageMargins -> 5
         ], SaveDefinitions -> True
     ]
@@ -107,7 +106,7 @@ makeAttributeCol[attr_, inAttr_, title_] := Panel[Grid[
         {a, attr}], 
     Alignment -> {Right, Top}],
     (* options to Panel *)
-    Style[title, $orange, Bold], ImageSize -> {150, Automatic}
+    style[title, $orange], ImageSize -> {150, Automatic}
 ];
 
 attributePanel[in_] := Panel[
@@ -126,11 +125,33 @@ attributePanel[in_] := Panel[
 (* ::Section:: *)
 (* Get Options from a symbol *)
 
-optionButton[{symbol_, defaultValue_}, col_, textcol_] := Button[
+(*optionButton[{symbol_, defaultValue_}, col_, textcol_] := Button[
     style[ToString[symbol], textcol],
     displayOptionUsage[{symbol, defaultValue}],
     Appearance -> "Frameless", Alignment -> Left, ImageSize -> {300, 22}, Background -> col, ImageMargins -> 0
 ]
+*)
+
+(*
+This represents a button which shows an option name and changes its color hover.
+When the button is clicked, it changes itself to a cell showing the usage message if available and the 
+default value of this option.
+*)
+usageButton[{symbol_Symbol, defaultValue_}] := 
+    DynamicModule[{state = False, label, dval, usg, sym, pane},
+        sym = ToString[symbol];
+        dval = ToString[defaultValue, InputForm];
+        usg = If[Unevaluated[symbol::usage] === symbol::usage, "No usage message available.", symbol::usage];
+        pane[textcol_, col_] := Pane[style[sym, textcol], {300, Automatic}, BaseStyle -> {Background -> col}, ImageMargins->0];
+  
+        label[False] = Mouseover[pane[$dark2, $bright1], pane[$orange, $bright2]];
+        label[True] = Tooltip[DisplayForm[Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0, CellSize -> {300, Automatic}]],
+            "Default value: "<> dval, TooltipDelay -> 1, TooltipStyle -> {$dark2, FontFamily -> "Helvetica", 
+                Background -> $bright2, CellFrameColor -> $dark1, CellFrame -> 2}];
+
+         Dynamic@Deploy[EventHandler[label[state], {"MouseUp" :> (state = Not[state])}]]
+]
+
 
 SetAttributes[displayOptionUsage, {HoldAll}];
 displayOptionUsage[{symbol_Symbol, defaultValue_}]:= With[{
@@ -144,7 +165,7 @@ displayOptionUsage[{symbol_Symbol, defaultValue_}]:= With[{
 displayOptionUsage[{symbol_String, defaultValue_}] := CreateDialog[{
     Cell[BoxData[StyleBox[RowBox[{symbol,": is a string-option and has no usage message."}],"MSG"]], "PrintUsage", CellMargins -> 0],
     Cell[StyleBox[ToString[defaultValue,InputForm], "Item"], CellMargins -> 0]}, 
-    WindowFrame -> "Frameless", Background -> $bright2];
+    WindowFrame -> "Frameless", Background -> $bright2, WindowFloating->True];
 
 optionsDialog[symbol_Symbol] := Module[{opts = Options[symbol]},
     Switch[opts,
@@ -152,10 +173,8 @@ optionsDialog[symbol_Symbol] := Module[{opts = Options[symbol]},
         errorDialog["Symbol has no Options."],
         _,
         opts = opts /. (RuleDelayed | Rule) -> List;
-        CreateDialog[Pane[Column[
-            Mouseover[optionButton[#, $bright1, $dark2], optionButton[#, $bright2, $orange]]& /@ opts, Spacings -> 0], 
-            ImageSize -> {300, 300}, ImageSizeAction -> "Scrollable", Scrollbars -> {None, Automatic}, AppearanceElements -> None], 
-        Background -> $bright2, WindowTitle -> ToString[symbol]
+        CreateDialog[DialogNotebook[Column[ usageButton /@ opts, Spacings -> 0] 
+        ], WindowSize -> {350, 300}, WindowElements -> {"VerticalScrollBar"}, WindowFrame -> "Palette", Background -> $bright1, WindowTitle -> ToString[symbol]
         ]
     ]
 ];
