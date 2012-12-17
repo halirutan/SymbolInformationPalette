@@ -175,7 +175,7 @@ usageButton[{symbol_Symbol, defaultValue_}] :=
     DynamicModule[{state = False, label, dval, usg, sym, pane},
         sym = ToString[symbol];
         dval = ToString[defaultValue, InputForm];
-        usg = MessageName[#, "usage"] & @@ symbol;
+        usg = MessageName[symbol, "usage"] ;
         usg = If[Head[usg] === MessageName, "No usage message available.", usg];        
         pane[textcol_, col_] := Pane[style[sym, textcol], {300, Automatic}, BaseStyle -> {Background -> col}, ImageMargins->0];
   
