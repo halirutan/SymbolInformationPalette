@@ -9,23 +9,6 @@ SymbolInformationPalette::usage = "AttributesViewerPalette[] displays the Attrib
 
 Begin["`Private`"]
 
-$orange = RGBColor[203/255, 5/17, 22/255];
-$blue = RGBColor[38/255, 139/255, 14/17];
-
-$bright1 = RGBColor[253/255, 82/85, 227/255];
-$bright2 = RGBColor[14/15, 232/255, 71/85];
-
-$dark1 = RGBColor[49/85, 161/255, 161/255];
-$dark2 = RGBColor[7/255, 18/85, 22/85];
-
-$paletteName = "Attributes Viewer.nb";
-
-buttonlabelstyle = Sequence[12, $bright1, FontFamily -> "Helvetica"];
-buttonstyle = Sequence[ImageMargins -> 0, Appearance -> "Frameless", 
-    Background -> $dark1, ImageSize -> {90, 90/(2 GoldenRatio)}];
-
-style[str_String, more___] := Style[str, 12, FontFamily -> "Helvetica", $dark1, more];
-
 InstallSymbolInformationPalette[path_String /; DirectoryQ[path]] := InstallSymbolInformationPalette[FileNameJoin[path, $paletteName]];
 InstallSymbolInformationPalette[] := InstallSymbolInformationPalette[
     FileNameJoin[{$UserBaseDirectory, "SystemFiles", "FrontEnd", "Palettes", $paletteName}]];
@@ -49,8 +32,9 @@ palette[] := PaletteNotebook[
     DynamicModule[{},
         Panel[
             Column[{
-                button["Attributes", showAttributes[]],
-                button["Options", showOptions[]]
+               button["Usage", showUsageDialog[]],
+                button["Options", showOptions[]],
+                button["Attributes", showAttributes[]]
             }],
         style["Properties", $orange],
         Appearance -> "Frameless", ImageMargins -> 5
@@ -58,6 +42,66 @@ palette[] := PaletteNotebook[
     ]
 ]
 
+
+(* ::Section:: *)
+(* Helper functions and values *)
+
+$orange = RGBColor[203/255, 5/17, 22/255];
+$blue = RGBColor[38/255, 139/255, 14/17];
+
+$bright1 = RGBColor[253/255, 82/85, 227/255];
+$bright2 = RGBColor[14/15, 232/255, 71/85];
+
+$dark1 = RGBColor[49/85, 161/255, 161/255];
+$dark2 = RGBColor[7/255, 18/85, 22/85];
+
+$paletteName = "Attributes Viewer.nb";
+
+buttonlabelstyle = Sequence[12, $bright1, FontFamily -> "Helvetica"];
+buttonstyle = Sequence[ImageMargins -> 0, Appearance -> "Frameless", 
+    Background -> $dark1, ImageSize -> {90, 90/(2 GoldenRatio)}];
+
+style[str_String, more___] := Style[str, 12, FontFamily -> "Helvetica", $dark1, more];
+
+
+(* Extracting an expression from the current cursor-position in the current notebook
+   If no Symbol was selected, we try to expand the selection and select the surrounding expression.
+*)
+getSymbol[nb_] := Block[{sel, heldSymbol},
+    If[(sel = NotebookRead[nb]) === {}, SelectionMove[nb, All, Expression];
+    sel = NotebookRead[nb];
+    ];
+    heldSymbol = MakeExpression[sel, StandardForm];
+    If[ sel =!= {} && Head[First[heldSymbol]] === Symbol,
+        heldSymbol,
+        $Failed]
+    ];
+
+
+(* ::Section:: *)
+(* Showing the usage of a symbol *)
+
+showUsageDialog[] := Module[{nb = SelectedNotebook[], usg, symbol},
+    symbol = getSymbol[nb];
+    If[symbol === $Failed,
+    errorDialog["No Symbol was selected."],
+    usg = MessageName[#, "usage"] & @@ symbol;
+    usg = If[Head[usg] === MessageName, "No usage message available.", usg]];
+    CreateDialog[DisplayForm[Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0, CellSize -> {300, Automatic}]], 
+        WindowTitle -> ToString @@ symbol, Background->$bright1, WindowFrame->"Palette"]
+]
+
+(*
+SetAttributes[usage, {HoldAll}];
+displayOptionUsage[{symbol_Symbol, defaultValue_}]:= With[{
+    dval = ToString[defaultValue,InputForm],
+    usg = If[Unevaluated[symbol::usage]===symbol::usage, "No usage message available.", symbol::usage]},
+    CreateDialog[{
+    Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0],
+    Cell[StyleBox[dval, "Item"], CellMargins -> 0, FontFamily->"Courier New", FontSize->12]}, 
+    WindowFrame -> "Frameless", Background -> $bright2, WindowSize -> {300,All}];
+];
+*)
 SetAttributes[button, {HoldRest}];
 button[lbl_String, cmd_] := Button[Style[lbl, buttonlabelstyle], cmd, buttonstyle];
 
@@ -83,18 +127,7 @@ showOptions[] := Module[{nb = SelectedNotebook[], symbol},
     ]
 ];
 
-(* Extracting an expression from the current cursor-position in the current notebook
-   If no Symbol was selected, we try to expand the selection and select the surrounding expression.
-*)
-getSymbol[nb_] := Block[{sel, heldSymbol},
-    If[(sel = NotebookRead[nb]) === {}, SelectionMove[nb, All, Expression];
-    sel = NotebookRead[nb];
-    ];
-    heldSymbol = MakeExpression[sel, StandardForm];
-    If[ sel =!= {} && Head[First[heldSymbol]] === Symbol,
-        heldSymbol,
-    $Failed]
-    ];
+
 
 $holdAttributes = {HoldFirst, HoldRest, HoldAll, HoldAllComplete, SequenceHold, NHoldFirst, NHoldRest, NHoldAll};
 $protectAttributes = {Protected, ReadProtected, Locked};
@@ -122,6 +155,7 @@ attributePanel[in_] := Panel[
 ]
 
 
+
 (* ::Section:: *)
 (* Get Options from a symbol *)
 
@@ -141,7 +175,8 @@ usageButton[{symbol_Symbol, defaultValue_}] :=
     DynamicModule[{state = False, label, dval, usg, sym, pane},
         sym = ToString[symbol];
         dval = ToString[defaultValue, InputForm];
-        usg = If[Unevaluated[symbol::usage] === symbol::usage, "No usage message available.", symbol::usage];
+        usg = MessageName[#, "usage"] & @@ symbol;
+        usg = If[Head[usg] === MessageName, "No usage message available.", usg];        
         pane[textcol_, col_] := Pane[style[sym, textcol], {300, Automatic}, BaseStyle -> {Background -> col}, ImageMargins->0];
   
         label[False] = Mouseover[pane[$dark2, $bright1], pane[$orange, $bright2]];
@@ -152,21 +187,12 @@ usageButton[{symbol_Symbol, defaultValue_}] :=
          Dynamic@Deploy[EventHandler[label[state], {"MouseUp" :> (state = Not[state])}]]
 ]
 
-
-SetAttributes[displayOptionUsage, {HoldAll}];
-displayOptionUsage[{symbol_Symbol, defaultValue_}]:= With[{
-    dval = ToString[defaultValue,InputForm],
-    usg = If[Unevaluated[symbol::usage]===symbol::usage, "No usage message available.", symbol::usage]},
-    CreateDialog[{
-    Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0],
-    Cell[StyleBox[dval, "Item"], CellMargins -> 0, FontFamily->"Courier New", FontSize->12]}, 
-    WindowFrame -> "Frameless", Background -> $bright2, WindowSize -> {300,All}];
-];
+(*
 displayOptionUsage[{symbol_String, defaultValue_}] := CreateDialog[{
     Cell[BoxData[StyleBox[RowBox[{symbol,": is a string-option and has no usage message."}],"MSG"]], "PrintUsage", CellMargins -> 0],
     Cell[StyleBox[ToString[defaultValue,InputForm], "Item"], CellMargins -> 0]}, 
     WindowFrame -> "Frameless", Background -> $bright2, WindowFloating->True];
-
+*)
 optionsDialog[symbol_Symbol] := Module[{opts = Options[symbol]},
     Switch[opts,
         {},
