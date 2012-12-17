@@ -12,4 +12,6 @@ symbol. It is sufficient when the cursor is on the symbol.
 
 To install the palette please evaluate
 
+```
 Get["https://raw.github.com/halirutan/SymbolInformationPalette/master/SymbolInformationPalette.m"]
+```
