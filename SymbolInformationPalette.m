@@ -116,8 +116,13 @@ showUsageDialog[] := Module[{nb = SelectedNotebook[], usg, symbol},
         errorDialog["No Symbol was selected."],
         usg = MessageName[#, "usage"] & @@ symbol;
         usg = If[Head[usg] === MessageName, "No usage message available.", usg];
-        CreateDialog[DisplayForm[Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0, CellSize -> {300, Automatic}]], 
-            WindowTitle -> ToString @@ symbol, Background->$bright1, WindowFrame->"Palette"]
+        With[{symstring = ToString@@symbol},
+        CreateDialog[
+            EventHandler[
+                DisplayForm[Cell[StyleBox[usg, "MSG"], "PrintUsage", CellMargins -> 0, CellSize -> {300, Automatic}]],
+                {"MouseDown",2} :> Documentation`HelpLookup[symstring, Null]],
+            WindowTitle -> symstring, Background->$bright1, WindowFrame->"Palette"]
+        ]
     ]
 ]
 
@@ -188,7 +193,9 @@ usageButton[{symbol_Symbol, defaultValue_}] :=
             "Default value: "<> dval, TooltipDelay -> 1, TooltipStyle -> {$dark2, FontFamily -> "Helvetica", 
                 Background -> $bright2, CellFrameColor -> $dark1, CellFrame -> 2}];
 
-         Dynamic@Deploy[EventHandler[label[state], {"MouseUp" :> (state = Not[state])}]]
+         Dynamic@Deploy[EventHandler[label[state], {
+            {"MouseUp",1} :> (state = Not[state]),
+            {"MouseDown",2} :> Documentation`HelpLookup[sym, Null]}]]
 ]
 
 
