@@ -64,7 +64,7 @@ palette[] := PaletteNotebook[
         style["Information", $orange],
         Appearance -> "Frameless", ImageMargins -> 5
         ], SaveDefinitions -> True
-    ]
+    ], WindowTitle -> "Symbol Information Palette"
 ]
 
 

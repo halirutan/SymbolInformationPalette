@@ -8,7 +8,7 @@ This is a small Mathematica palette which let's you fast investigate in
 - Attritubes of Symbols
 
 To use this palette is really easy. You don't have to select a function or
-symbol. It is sufficient when the cursor is on the symbol.
+symbol. It is sufficient when the cursor is on the symbol and you click one of the buttons.
 
 To install the palette please evaluate
 
